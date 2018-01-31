@@ -2,6 +2,7 @@ const _ = require('lodash')
 const fse = require('fs-extra')
 const path = require('path')
 const chalk = require('chalk')
+const R = require('ramda')
 
 const NAME = chalk.blue('[ConfigBrick]')
 
@@ -101,4 +102,6 @@ function addBrick(brickName, brickFn) {
   }
 }
 
-module.exports = ConfigBrick
+exports.merge = require('./merge')
+exports.pipe = R.pipe
+exports.ConfigBrick = ConfigBrick

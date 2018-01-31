@@ -1,5 +1,7 @@
-const Conf = require('../index')
+const { ConfigBrick, merge, pipe } = require('../index')
 const fse = require('fs-extra')
+
+const Conf = ConfigBrick
 
 const fn1 = opts => conf => {
   conf.a = 1
@@ -18,6 +20,9 @@ const clearBricks = bricks => {
 }
 
 describe('ConfigBrick', () => {
+  test('ConfigBrick exist', () => {
+    expect(Conf).toBeDefined()
+  })
   test('default config is an empty object', () => {
     expect(new Conf().value()).toEqual({})
   })
@@ -105,5 +110,28 @@ describe('ConfigBrick', () => {
   test('should bebug ', () => {
     Conf.use(fn1)
     new Conf({ debug: true }).fn1().value()
+  })
+})
+
+describe('merge behavior', () => {
+  test('merge exist', () => {
+    expect(merge).toBeDefined()
+  })
+  test('shoud concat array when merge', () => {
+    expect(merge({ a: [1] }, { a: [2] })).toEqual({
+      a: [1, 2]
+    })
+  })
+})
+
+describe('pipe behavior', () => {
+  test('pipe exist', () => {
+    expect(pipe).toBeDefined()
+  })
+  test('pipe work', () => {
+    expect(pipe(fn1(), fn2())({})).toEqual({
+      a: 1,
+      b: 2
+    })
   })
 })
