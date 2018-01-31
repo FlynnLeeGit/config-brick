@@ -32,6 +32,14 @@ describe('ConfigBrick', () => {
     })
   })
 
+  test('should output json in default location', () => {
+    const configPath = __dirname + '/../config.json'
+    fse.removeSync(configPath)
+    new Conf().toJson()
+    const config = fse.readJsonSync(configPath, 'utf-8')
+    expect(config).toEqual({})
+  })
+
   test('should output correct json file', () => {
     const configPath = __dirname + '/dist/config.json'
     new Conf().toJson(configPath)

@@ -103,7 +103,6 @@ class WebpackBrick extends ConfigBrick {
     super(props)
   }
 }
-const merge = require('webpack-merge')
 
 const plugins = opts => conf => {
   return merge(conf, {
