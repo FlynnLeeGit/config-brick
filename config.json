@@ -1,0 +1,14 @@
+{
+  "module": {
+    "rules": [
+      {
+        "test": {},
+        "use": "vue-loader"
+      },
+      {
+        "test": {},
+        "use": "babel-loader"
+      }
+    ]
+  }
+}
