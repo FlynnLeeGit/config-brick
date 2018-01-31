@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. See [standa
 <a name="0.1.1"></a>
 ## [0.1.1](https://github.com/FlynnLeeGit/config-brick/compare/v0.1.0...v0.1.1) (2018-01-31)
 
-
+add repo info
 
 <a name="0.1.0"></a>
 # 0.1.0 (2018-01-31)
