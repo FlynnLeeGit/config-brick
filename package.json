@@ -2,6 +2,7 @@
   "name": "config-brick",
   "version": "0.1.0",
   "main": "./index.js",
+  "author": "flynnlee",
   "scripts": {
     "test": "jest",
     "dev": "npm t -- --watch --coverage",
@@ -20,6 +21,14 @@
     "standard-version": "^4.3.0",
     "webpack-merge": "^4.1.1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FlynnLeeGit/config-brick.git"
+  },
+  "bugs": {
+    "url": "https://github.com/FlynnLeeGit/config-brick/issues"
+  },
+  "homepage": "https://github.com/FlynnLeeGit/config-brick#readme",
   "jest": {
     "verbose": true,
     "watchPathIgnorePatterns": [
