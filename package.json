@@ -33,7 +33,8 @@
     "verbose": true,
     "watchPathIgnorePatterns": [
       "<rootDir>/node_modules/",
-      "<rootDir>/__test__/dist"
+      "<rootDir>/__test__/dist",
+      "<rootDir>/config.json"
     ]
   }
 }
