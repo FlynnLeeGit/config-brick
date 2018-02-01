@@ -2,106 +2,112 @@ const _ = require('lodash')
 const fse = require('fs-extra')
 const path = require('path')
 const chalk = require('chalk')
-const R = require('ramda')
 
-const NAME = chalk.blue('[ConfigBrick]')
+const ifBrick = require('./bricks/if')
+const pipeBrick = require('./bricks/pipe')
+const mergeBrick = require('./bricks/merge')
 
-const validate = {
-  fn(fn, tag) {
-    if (!_.isFunction(fn)) {
-      throw new Error(`${NAME} '${tag}' should be a function`)
-    }
-  }
+const configBrick = function(seed) {
+  return new configBrick.prototype._init(seed)
 }
 
-function ConfigBrick(userOptions = {}) {
-  const defaultOptions = {
-    seed: {},
-    debug: false
-  }
-  const options = _.merge({}, defaultOptions, userOptions)
-  this.config = options.seed
-  this.debug = options.debug
-}
+configBrick.prototype = {
+  _init: function(seed = {}) {
+    this.conf = seed
 
-ConfigBrick.prototype = {
-  /**
-   * get the config final value
-   */
-  value() {
-    return this.config
+    this._debug = false
+    this._name = chalk[configBrick.THEME || 'blue'](
+      configBrick.NAME || '[ConfigBrick]'
+    )
+    return this
+  },
+  debug() {
+    this._debug = true
+    return this
   },
   /**
    * @param {* string } filename  the filename you will output json file
    * @return ConfigBrick instance
    */
   toJson(filename = path.resolve('./config.json')) {
-    fse.outputJsonSync(filename, this.config, { spaces: 2 })
+    fse.outputJsonSync(filename, this.conf, { spaces: 2 })
+    return this
+  },
+  value() {
+    return this.conf
+  }
+}
+
+configBrick.prototype._init.prototype = configBrick.fn = configBrick.prototype
+configBrick.bricks = {}
+
+/**
+ * register bricks
+ * @param { object } bricks
+ * @return configBrick
+ * @example
+ *
+ * const $b = require('config-brick')
+ * $b.registerBrick({
+ *  fn1:()=>conf=>(conf.a=1,conf)
+ * })
+ * it will add a prototype method name 'fn1' with wrapped
+ * and add this fn to configBrick.bricks
+ */
+configBrick.registerBrick = bricks => {
+  if (!_.isPlainObject(bricks)) {
+    throw new Error(
+      `${
+        this._name
+      } .registerBrick options should be [object] but got ${typeof bricks}`
+    )
+  }
+  _.forEach(bricks, (brickFn, brickName) => {
+    addOneBrick(brickName, brickFn)
+  })
+  return configBrick
+}
+
+configBrick.removeBrick = (...brickNames) => {
+  _.forEach(brickNames, name => {
+    configBrick.prototype[name] = null
+    configBrick.bricks[name] = null
+  })
+}
+/**
+ * original brick fn to configBrick.bricks object
+ * @param { string } brickName
+ * @param { funciton } brickFn
+ *
+ */
+function addOneBrick(brickName, brickFn) {
+  if (!_.isFunction(brickFn)) {
+    throw new Error(
+      `${this._name} brick should be a [function] but got ${typeof brickFn}`
+    )
+  }
+
+  configBrick.bricks[brickName] = brickFn
+  configBrick.prototype[brickName] = function(...brickArgs) {
+    // in debug mode
+    if (this._debug) {
+      const old_conf = _.cloneDeep(this.conf)
+      this.conf = brickFn(...brickArgs)(this.conf)
+      const { detailedDiff } = require('deep-object-diff')
+      console.log(
+        `\n ${this._name} laying brick -> [${brickName}]\n`,
+        detailedDiff(old_conf, this.conf)
+      )
+      return this
+    }
+
+    this.conf = brickFn(...brickArgs)(this.conf)
     return this
   }
 }
 
-/**
- * add bricks in ConfigBrick prototype
- * @param { object | array | fn } bricks
- * @return ConfigBrick instance
- * @example
- *
- * ConfigBrick.use({fn1:fn1,fn2:fn2})
- * ConfigBrick.use([fn1,fn2,fn3])
- * ConfigBrick.use(fn1,fn2)
- *
- */
-ConfigBrick.use = function(first, ...rest) {
-  if (_.isPlainObject(first)) {
-    _.forEach(first, (brickFn, brickName) => {
-      validate.fn(brickFn, brickFn)
-      addBrick(brickName, brickFn)
-    })
-    return
-  }
-  if (_.isArray(first)) {
-    _.forEach(first, brickFn => {
-      validate.fn(brickFn, brickFn)
-      const brickName = brickFn.name
-      addBrick(brickName, brickFn)
-    })
-    return
-  }
-  // more than one argument
-  if (_.isFunction(first)) {
-    const bricks = [first, ...rest]
-    _.forEach(bricks, brickFn => {
-      validate.fn(brickFn, brickFn)
-      const brickName = brickFn.name
-      addBrick(brickName, brickFn)
-    })
-    return
-  }
-  throw new Error(
-    `${NAME} .use options should be any of [object,array,function] but got ${typeof first}`
-  )
-}
-
-function addBrick(brickName, brickFn) {
-  ConfigBrick.prototype[brickName] = function(brickOpts) {
-    if (this.debug) {
-      const old_config = _.cloneDeep(this.config)
-      this.config = brickFn(brickOpts)(this.config)
-      const { detailedDiff } = require('deep-object-diff')
-      console.log(
-        `\n ${NAME} add brick [${brickName}]\n ->`,
-        detailedDiff(old_config, this.config)
-      )
-      return this
-    } else {
-      this.config = brickFn(brickOpts)(this.config)
-      // for chain use
-      return this
-    }
-  }
-}
-
-exports.merge = require('./merge')
-exports.pipe = R.pipe
-exports.ConfigBrick = ConfigBrick
+module.exports = configBrick.registerBrick({
+  pipe: pipeBrick,
+  if: ifBrick,
+  merge: mergeBrick
+})

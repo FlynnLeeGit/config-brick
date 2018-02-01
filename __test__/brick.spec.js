@@ -1,33 +1,18 @@
-const { ConfigBrick, merge, pipe } = require('../index')
+const $b = require('../index')
 const fse = require('fs-extra')
 
-const Conf = ConfigBrick
-
-const fn1 = opts => conf => {
-  conf.a = 1
-  return conf
-}
-
-const fn2 = opts => conf => {
-  conf.b = 2
-  return conf
-}
-
-const clearBricks = bricks => {
-  bricks.forEach(b => {
-    delete Conf.prototype[b]
-  })
-}
+const fn1 = opts => conf => ((conf.a = 1), conf)
+const fn2 = opts => conf => ((conf.b = 2), conf)
 
 describe('ConfigBrick', () => {
   test('ConfigBrick exist', () => {
-    expect(Conf).toBeDefined()
+    expect($b).toBeDefined()
   })
   test('default config is an empty object', () => {
-    expect(new Conf().value()).toEqual({})
+    expect($b().value()).toEqual({})
   })
   test('should use seed object', () => {
-    expect(new Conf({ seed: { a: 1 } }).value()).toEqual({
+    expect($b({ a: 1 }).value()).toEqual({
       a: 1
     })
   })
@@ -35,36 +20,38 @@ describe('ConfigBrick', () => {
   test('should output json in default location', () => {
     const configPath = __dirname + '/../config.json'
     fse.removeSync(configPath)
-    new Conf().toJson()
+    $b().toJson()
     const config = fse.readJsonSync(configPath, 'utf-8')
     expect(config).toEqual({})
   })
 
   test('should output correct json file', () => {
     const configPath = __dirname + '/dist/config.json'
-    new Conf().toJson(configPath)
+    $b().toJson(configPath)
     const config = fse.readJsonSync(configPath, 'utf-8')
     expect(config).toEqual({})
   })
 
-  test('should throw when .use options get not funciton', () => {
+  test('should throw when .registerBrick options get not an object', () => {
     expect(() => {
-      Conf.use('a')
+      $b.registerBrick('a')
     }).toThrow()
   })
 
   test('should throw when brick builder is not function', () => {
     expect(() => {
-      Conf.use(['a'])
+      $b.registerBrick({
+        a: 'a'
+      })
     }).toThrow()
   })
 
   test('should add bricks from object', () => {
-    Conf.use({
+    $b.registerBrick({
       fn1,
       fn2
     })
-    const res = new Conf()
+    const res = $b()
       .fn1()
       .fn2()
       .value()
@@ -73,38 +60,15 @@ describe('ConfigBrick', () => {
       b: 2
     })
     // clear prototype
-    clearBricks(['fn1', 'fn2'])
-  })
-
-  test('should add bricks from array', () => {
-    Conf.use([fn1, fn2])
-    const res = new Conf()
-      .fn1()
-      .fn2()
-      .value()
-    expect(res).toEqual({
-      a: 1,
-      b: 2
-    })
-    clearBricks(['fn1', 'fn2'])
-  })
-
-  test('should add bricks from two more arguments', () => {
-    Conf.use(fn1, fn2)
-    const res = new Conf()
-      .fn1()
-      .fn2()
-      .value()
-    expect(res).toEqual({
-      a: 1,
-      b: 2
-    })
-    clearBricks(['fn1', 'fn2'])
+    $b.removeBrick('fn1', 'fn2')
   })
 
   test('should merge config with seed', () => {
-    Conf.use(fn1, fn2)
-    const res = new Conf({ seed: { c: 3 } })
+    $b.registerBrick({
+      fn1,
+      fn2
+    })
+    const res = $b({ c: 3 })
       .fn1()
       .fn2()
       .value()
@@ -113,33 +77,77 @@ describe('ConfigBrick', () => {
       b: 2,
       c: 3
     })
-    clearBricks(['fn1', 'fn2'])
+    $b.removeBrick('fn1', 'fn2')
   })
+
   test('should bebug ', () => {
-    Conf.use(fn1)
-    new Conf({ debug: true }).fn1().value()
+    $b.registerBrick({ fn1 })
+    const b = $b()
+      .debug()
+      .fn1()
+    expect(b._debug).toBeTruthy()
+    $b.removeBrick('fn1')
+  })
+
+  test('should get correct name', () => {
+    $b.NAME = '[WebpackBrick]'
+    $b.THEME = 'yellow'
+    expect($b()._name).toBe("\u001b[33m[WebpackBrick]\u001b[39m")
   })
 })
 
-describe('merge behavior', () => {
-  test('merge exist', () => {
-    expect(merge).toBeDefined()
+describe('pipe brick', () => {
+  test('should exist', () => {
+    expect($b.bricks.pipe).toBeDefined()
   })
-  test('shoud concat array when merge', () => {
-    expect(merge({ a: [1] }, { a: [2] })).toEqual({
-      a: [1, 2]
-    })
-  })
-})
-
-describe('pipe behavior', () => {
-  test('pipe exist', () => {
-    expect(pipe).toBeDefined()
-  })
-  test('pipe work', () => {
-    expect(pipe(fn1(), fn2())({})).toEqual({
+  test('should pipe conf data', () => {
+    expect(
+      $b()
+        .pipe([fn1(), fn2()])
+        .value()
+    ).toEqual({
       a: 1,
       b: 2
     })
+  })
+})
+
+describe('if brick', () => {
+  test('should exist', () => {
+    expect($b.bricks.if).toBeDefined()
+  })
+  test('should merge conf when if true', () => {
+    const conf = $b()
+      .if(true, [fn1()])
+      .value()
+    expect(conf).toEqual({
+      a: 1
+    })
+  })
+  test('should not merge conf when if false', () => {
+    const conf = $b()
+      .if(false, [fn1()])
+      .value()
+    expect(conf).toEqual({})
+  })
+})
+
+describe('merge brick', () => {
+  test('exist', () => {
+    expect($b.bricks.merge).toBeDefined()
+  })
+  test('should merge when object key', () => {
+    const conf = $b({ a: 3 })
+      .merge({ a: 2 })
+      .value()
+    expect(conf).toEqual({
+      a: 2
+    })
+  })
+  test('should concat arr conf', () => {
+    const conf = $b({ a: [1] })
+      .merge({ a: [2] })
+      .value()
+    expect(conf).toEqual({ a: [1, 2] })
   })
 })

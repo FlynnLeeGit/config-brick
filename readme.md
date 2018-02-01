@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/FlynnLeeGit/config-brick.svg?style=svg)](https://circleci.com/gh/FlynnLeeGit/config-brick)
 
-simple config builder for some complex config file like webpack, it can be the base config builder,and you can add custom brick function
+use standard brick function to build complex config easier
 
 ### install
 
@@ -12,15 +12,17 @@ yarn add config-brick
 npm install config-brick
 ```
 
-### use
+### standard brick function
+
+all config is produced by standard brick function (SBF)
 
 ```js
-const { ConfigBrick } = require('config-brick')
-
-// if want to config result {a:1,b:2} but into two bricks
-
+// simplest brick function
 const fn1 = opts => conf => {
+  // opts can be fn1's options
   conf.a = 1
+  // shoud return the config result you want,
+  // this output result will be next function's input
   return conf
 }
 
@@ -28,52 +30,80 @@ const fn2 = opts => conf => {
   conf.b = 2
   return conf
 }
+```
 
-// add brick to ConfigBrick.prototype
-ConfigBrick.use({
+### use SBF
+
+```js
+const $b = require('config-brick')
+// register SBF first
+$b.registerBrick({
   fn1: fn1,
   fn2: fn2
 })
 
-// get result
-new ConfigBrick()
+// then you can use it by chain
+$b()
   .fn1()
   .fn2()
   .value()
-// -> {a:1,b:2}
+// notice .value() to get the final config result,or you will just get the
+// brick instance
+// -> produce {a:1,b:3}
 ```
 
-Constructor options
+### initialSeedConfig
 
 ```js
-new ConfigBrick({
-  seed:{} // defautl {}
-  debug:false
-})
-
-// with custom seed
-new ConfigBrick({
-  seed:{c:3}
-})
+$b({ c: 3 })
   .fn1()
   .fn2()
   .value()
-//-> {a:1,b:2,c:3}
+// -> {a:1,b:2,c:3}
 ```
 
-## hard-disk file
+## some internal bricks already registered
 
-now support output json file to hard dist
+### merge
+
+concat array
 
 ```js
-new Conf().toJson('.tmp/config.json') // will output config.json
+$b({ a: [1], b: 2 })
+  .merge({ a: [2], b: 3 })
+  .value()
+
+// -> {a:[1,2],b:3}
 ```
 
-### when to use
+### pipe
 
-let's make an example that you will build a webpack config builder or other complex config,you can use this
+data transform from left to right,
 
-we want a config like this
+```js
+$b()
+  .pipe([fn1(), fn2()])
+  .value()
+// will be {a:1,b:2}
+```
+
+### if
+
+flow control
+
+```js
+const bool = true
+$b()
+  .if(bool, [fn1()], [fn2()])
+  .value()
+// true will be {a:1}
+// false will be {b:2}
+```
+
+### complex example
+
+let's start with a webpack config file
+you want this config
 
 ```js
 {
@@ -93,94 +123,56 @@ we want a config like this
 }
 ```
 
-let's build a webpackBrickBuilder based on ConfigBrick
+use config-brick
 
 ```js
-const {ConfigBrick,merge} = require('config-brick')
+// first predefined some bricks you want
+const $b = require('config-brick')
+// brick can be found in $b.bricks
+const { merge } = $b.bricks
 
-class WebpackBrick extends ConfigBrick {
-  constructor(props) {
-    super(props)
-  }
+const plugins = (plugins = []) => conf => {
+  return merge({
+    plugins: [...plugins]
+  })(conf)
 }
-
-const plugins = opts => conf => {
-  return merge(conf, {
-    plugins: [...opts]
-  })
-}
-
-const loaders = opts => conf => {
-  return merge(conf, {
+const rules = (rules = []) => conf => {
+  return merge({
     module: {
-      rules: [...opts]
+      rules: [...rules]
     }
-  })
+  })(conf)
 }
 
-const vue = opts => conf => {
-  return loaders([
-    { test: /\.vue$/, loader: 'vue-loader' }
-  ])(conf)
+const vue = () => conf => {
+  return rules([{ test: /\.vue$/, loader: 'vue-loader' }])(conf)
+}
+const babel = () => conf => {
+  return rules([{ test: /\.js$/, loader: 'babel-loader' }])(conf)
+}
+const css = () => conf => {
+  return rules([{ test: /\.css$/, loader: 'style-loader!css-loader' }])(conf)
 }
 
-const babel = opts => conf => {
-  return loaders([
-    { test: /\.js$/, loader: 'babel-loader' }
-  ])(conf)
-}
 
-const css = opts => conf => {
-  return loaders([
-    { test: /\.css$/, loader: 'style-loader!css-loader'}
-  ])(conf)
-}
+const webpackBrick = $b.registerBrick({
+  plugins,
+  rules,
+  vue,
+  babel,
+  css
+})
 
-WebpackBrick.use(plugins, loaders, vue, babel, css)
-module.exports = WebpackBrick
-```
-
-then next you want to start a webpack project,just
-```js
-new WebpackBrick()
+// use it !
+const $wb = webpackBrick
+$wb({
+  entry: {
+    main: './src/main.js'
+  }
+})
   .vue()
   .babel()
   .css()
-  .plugins(
-    [
-      new CopyPlugin()
-    ]
-  )
+  .plugins([new CopyPlugin()])
   .value()
-
-```
-
-
-## some utils 
-
-### merge
-lodash merge but we concat array
-https://lodash.com/docs/4.17.4#mergeWith
-
-```js
-const {merge} = require("config-brick")
-const a = {a:1,b:2,c:[1]}
-const b = {a:3,b:2,c:[2]}
-merge(a,b) // -> {a:3,b:2,c:[1,2]}
-
-```
-
-### pipe 
-ramda pipe function
-http://ramda.cn/docs/#pipe
-```js
-const {pipe} = require("config-webpack")
-
-const fn1 = a=>a+1
-const fn2 = a=>a*2
-
-const res = pipe(fn1,fn2)(3)
-
-// res -> ( 3 + 1 ) * 2 = 8
-
 ```
