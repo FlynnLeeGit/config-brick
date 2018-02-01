@@ -3,7 +3,12 @@ const pipeBrick = fns => conf => {
     fns = []
   }
   return fns.reduce((conf, fn) => {
-    return fn(conf)
+    // handler
+    const res = fn(conf)
+    if (res) {
+      return res
+    }
+    return conf
   }, conf)
 }
 

@@ -91,13 +91,12 @@ function addOneBrick(brickName, brickFn) {
   configBrick.prototype[brickName] = function(...brickArgs) {
     // in debug mode
     if (this._debug) {
+      console.log(`${this._name} start lay brick [${brickName}]`)
       const old_conf = _.cloneDeep(this.conf)
       this.conf = brickFn(...brickArgs)(this.conf)
       const { detailedDiff } = require('deep-object-diff')
-      console.log(
-        `\n ${this._name} laying brick -> [${brickName}]\n`,
-        detailedDiff(old_conf, this.conf)
-      )
+      console.log(detailedDiff(old_conf, this.conf))
+      console.log(`\n ${this._name} lay brick [${brickName}] done \n`)
       return this
     }
 
