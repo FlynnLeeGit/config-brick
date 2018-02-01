@@ -1,36 +1,38 @@
-const { ConfigBrick, merge } = require('../index')
+// first predefined some bricks you want
+const $b = require('../index')
+// brick can be found in $b.bricks
+const { merge } = $b.bricks
 
-class WebpackBrick extends ConfigBrick {
-  constructor(props) {
-    super(props)
-  }
+const plugins = (plugins = []) => conf => {
+  return merge({
+    plugins: [...plugins]
+  })(conf)
 }
-
-const plugins = opts => conf => {
-  return merge(conf, {
-    plugins: [...opts]
-  })
-}
-
-const loaders = opts => conf => {
-  return merge(conf, {
+const rules = (rules = []) => conf => {
+  return merge({
     module: {
-      rules: [...opts]
+      rules: [...rules]
     }
-  })
+  })(conf)
 }
 
-const vue = opts => conf => {
-  return loaders([{ test: /\.vue$/, loader: 'vue-loader' }])(conf)
+const vue = () => conf => {
+  return rules([{ test: /\.vue$/, loader: 'vue-loader' }])(conf)
+}
+const babel = () => conf => {
+  return rules([{ test: /\.js$/, loader: 'babel-loader' }])(conf)
+}
+const css = () => conf => {
+  return rules([{ test: /\.css$/, loader: 'style-loader!css-loader' }])(conf)
 }
 
-const babel = opts => conf => {
-  return loaders([{ test: /\.js$/, loader: 'babel-loader' }])(conf)
-}
 
-const css = opts => conf => {
-  return loaders([{ test: /\.css$/, loader: 'style-loader!css-loader' }])(conf)
-}
+const webpackBrick = $b.registerBrick({
+  plugins,
+  rules,
+  vue,
+  babel,
+  css
+})
 
-WebpackBrick.use(plugins, loaders, vue, babel, css)
-module.exports = WebpackBrick
+module.exports = webpackBrick
