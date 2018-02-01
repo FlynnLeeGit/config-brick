@@ -1,4 +1,4 @@
-## config-brick
+## config-brick 2.0 
 
 [![CircleCI](https://circleci.com/gh/FlynnLeeGit/config-brick.svg?style=svg)](https://circleci.com/gh/FlynnLeeGit/config-brick)
 
