@@ -3,7 +3,7 @@ const fse = require('fs-extra')
 const path = require('path')
 const chalk = require('chalk')
 
-const { unset, waterfallPromise } = require('./lib/utils')
+const { isset, waterfallPromise } = require('./lib/utils')
 
 const ifBrick = require('./lib/bricks/if')
 const pipeBrick = require('./lib/bricks/pipe')
@@ -14,14 +14,7 @@ const ConfigBrick = function(seed) {
   return new ConfigBrick.prototype.init(seed)
 }
 
-ConfigBrick.config = {
-  title: '[ConfigBrick]',
-  theme: 'blue'
-}
-
-ConfigBrick.themeTitle = function() {
-  return chalk[this.config.theme](this.config.title)
-}
+ConfigBrick.Name = chalk.blue('[ConfigBrick]')
 
 ConfigBrick.prototype = {
   init: function(conf = {}) {
@@ -29,38 +22,47 @@ ConfigBrick.prototype = {
     this.queue = []
     this._debug = false
     this._async = false
+    this._file = {
+      json: null
+    }
     return this
   },
   /**
    * @param {* string } filename  the filename you will output json file
    * @return ConfigBrick instance
    */
-  // toJson(filename = path.resolve('./config.json')) {
-  //   if (this._async) {
-  //     this.value().then(res => {
-  //       fse.outputJsonSync(filename, res, { spaces: 2 })
-  //     })
-  //   } else {
-  //     fse.outputJsonSync(filename, this.value(), { spaces: 2 })
-  //   }
-  //   return this
-  // },
+  toJson(filename = path.resolve('./config.json')) {
+    this._file.json = filename
+    return this
+  },
+  _outputJsonSync(conf) {
+    if (this._file.json) {
+      fse.outputJsonSync(this._file.json, conf, { spaces: 2 })
+    }
+  },
   debug() {
     this._debug = true
     return this
   },
+  done() {
+    return this.value()
+  },
   value() {
     if (this._async) {
       return waterfallPromise(this.queue, this.conf).then(conf => {
+        this._outputJsonSync(conf)
         return conf
       })
     }
-    return pipeBrick(this.queue)(this.conf)
+    const conf = pipeBrick(this.queue)(this.conf)
+    this._outputJsonSync(conf)
+    return conf
   }
 }
 
 ConfigBrick.prototype.init.prototype = ConfigBrick.prototype
 ConfigBrick.bricks = {}
+ConfigBrick.state = {}
 
 /**
  * register bricks
@@ -83,7 +85,9 @@ ConfigBrick.registerBrick = ConfigBrick.use = function(bricks) {
   const Ctor = this
   if (!_.isPlainObject(bricks)) {
     throw new Error(
-      `${Ctor.themeTitle()} .registerBrick options should be [object] but got ${typeof bricks}`
+      `${
+        Ctor.Name
+      } .registerBrick options should be [object] but got ${typeof bricks}`
     )
   }
 
@@ -102,7 +106,9 @@ ConfigBrick.registerBrick = ConfigBrick.use = function(bricks) {
 function addOneBrick(Ctor, brickName, brickFn) {
   if (!_.isFunction(brickFn)) {
     throw new Error(
-      `${Ctor.themeTitle()} brick [${brickName}] should be a [function] but got ${typeof brickFn}`
+      `${
+        Ctor.Name
+      } brick [${brickName}] should be a [function] but got ${typeof brickFn}`
     )
   }
 
@@ -112,7 +118,9 @@ function addOneBrick(Ctor, brickName, brickFn) {
     if (fn.length > 1 && !this._async) {
       this._async = true
       console.log(
-        `${Ctor.themeTitle()} brick [${brickName}] is a async brick function, .value() now will a Promise instance`
+        `${
+          Ctor.Name
+        } brick [${brickName}] is a async brick function, .value() now will be a Promise`
       )
     }
     this.queue.push(fn)
@@ -125,22 +133,18 @@ ConfigBrick.extend = function() {
   function Sub(...args) {
     return new Sub.prototype.init(...args)
   }
-  Sub.prototype.init = function(seed = {}) {
-    this.conf = seed
-    this.queue = []
-    this._async = false
-    this._debug = false
-    this._result = null
-    return this
-  }
-
-  // es2015 extends
+  Sub.state = {}
+  // extends Sub.__proto__ = Super
   Object.setPrototypeOf(Sub, Super)
-  Object.setPrototypeOf(Sub.prototype, Super.prototype)
-
-  Sub.config = Object.assign({}, Super.config)
-
+  function __() {
+    this.constructor = Sub
+  }
+  Sub.prototype = ((__.prototype = Super.prototype), new __())
+  Sub.prototype.init = function(...args) {
+    Super.prototype.init.apply(this, args)
+  }
   Sub.prototype.init.prototype = Sub.prototype
+
   return Sub
 }
 

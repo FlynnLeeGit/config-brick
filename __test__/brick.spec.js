@@ -25,49 +25,60 @@ describe('ConfigBrick', () => {
     })
   })
 
-  // test('should output json in default location', () => {
-  //   const configPath = __dirname + '/../config.json'
-  //   fse.removeSync(configPath)
-  //   $b().toJson()
-  //   const config = fse.readJsonSync(configPath, 'utf-8')
-  //   expect(config).toEqual({})
-  // })
+  test('should output json in default location', () => {
+    const configPath = __dirname + '/../config.json'
+    fse.removeSync(configPath)
+    $b()
+      .toJson()
+      .done()
+    const config = fse.readJsonSync(configPath, 'utf-8')
+    expect(config).toEqual({})
+    fse.removeSync(configPath)
+  })
 
-  // test('should output correct json file', () => {
-  //   const configPath = __dirname + '/dist/config.json'
-  //   fse.removeSync(configPath)
-  //   $b.registerBrick({
-  //     fn1
-  //   })
-  //   $b()
-  //     .fn1()
-  //     .toJson(configPath)
-  //   const config = fse.readJsonSync(configPath, 'utf-8')
-  //   expect(config).toEqual({ a: 1 })
-  //   clearBrick('fn1')
-  // })
+  test('should output correct json file', () => {
+    const configPath = __dirname + '/dist/config.json'
+    fse.removeSync(configPath)
+    $b.use({
+      fn1
+    })
+    $b()
+      .fn1()
+      .toJson(configPath)
+      .done()
+    const config = fse.readJsonSync(configPath, 'utf-8')
+    expect(config).toEqual({ a: 1 })
+    clearBrick('fn1')
+    fse.removeSync(configPath)
+  })
 
-  // test('should async output json ok', done => {
-  //   const configPath = __dirname + '/dist/async/config.json'
-  //   fse.removeSync(configPath)
-  //   const fn1 = () => (conf, next) => {
-  //     conf.a = 1
-  //     next()
-  //   }
-  //   $b.registerBrick({
-  //     fn1
-  //   })
-  //   $b()
-  //     .fn1()
-  //     .toJson(configPath)
-  //   process.nextTick(() => {
-  //     const config = fse.readJsonSync(configPath, 'utf-8')
-  //     expect(config).toEqual({ a: 1 })
-  //     done()
-  //     clearBrick('fn1')
-  //   })
-  // })
+  test('should async output json ok', done => {
+    const configPath = __dirname + '/dist/async/config.json'
+    fse.removeSync(configPath)
+    const fn1 = () => (conf, next) => {
+      conf.a = 1
+      next()
+    }
+    $b.use({
+      fn1
+    })
+    $b()
+      .fn1()
+      .toJson(configPath)
+      .done()
+      .then(() => {
+        const config = fse.readJsonSync(configPath, 'utf-8')
+        expect(config).toEqual({ a: 1 })
+        done()
+        clearBrick('fn1')
+        fse.removeSync(configPath)
+      })
+  })
 
+  test('should debug ok', () => {
+    const isDebug = $b().debug()._debug
+    expect(isDebug).toBeTruthy()
+  })
   test('should throw when .registerBrick options get not an object', () => {
     expect(() => {
       $b.registerBrick('a')
@@ -103,7 +114,7 @@ describe('ConfigBrick', () => {
     const $nb = $b.extend()
     test('should exist', () => {
       expect($nb).toBeDefined()
-      expect($nb.config).toBeDefined()
+      expect($nb.Name).toBeDefined()
       expect($nb.use).toBeDefined()
     })
     test('should registerBrick on just own Ctor', () => {
@@ -148,24 +159,6 @@ describe('ConfigBrick', () => {
     })
     clearBrick('fn1', 'fn2')
   })
-
-  test('should bebug ', () => {
-    $b.registerBrick({ fn1 })
-    $b.config.debug = true
-    $b()
-      .debug()
-      .fn1()
-      .value()
-    $b.config.debug = false
-  })
-
-  test('should get correct name', () => {
-    $b.config.title = 'A'
-    $b.config.theme = 'yellow'
-    expect($b.themeTitle()).toBe(chalk.yellow('A'))
-    $b.config.name = '[ConfigBrick]'
-    $b.config.theme = 'blue'
-  })
 })
 
 describe('pipe brick', () => {
@@ -183,12 +176,15 @@ describe('pipe brick', () => {
     })
   })
   test('should ok when it is not a array', () => {
-    expect(
-      $b()
-        .fn1()
-        .pipe()
-        .value()
-    ).toEqual({ a: 1 })
+    $b.use({
+      fn1
+    })
+    const conf = $b()
+      .fn1()
+      .pipe()
+      .value()
+    expect(conf).toEqual({ a: 1 })
+    clearBrick('fn1')
   })
 
   test('should return conf when undefined data returned', () => {
@@ -211,6 +207,9 @@ describe('if brick', () => {
     expect($b.bricks.if).toBeDefined()
   })
   test('should merge conf when if true', () => {
+    $b.use({
+      fn1
+    })
     const conf = $b()
       .if(true, conf =>
         $b(conf)
@@ -221,6 +220,7 @@ describe('if brick', () => {
     expect(conf).toEqual({
       a: 1
     })
+    clearBrick('fn1')
   })
 
   test('should use default behavie', () => {
@@ -340,6 +340,9 @@ describe('script brick ok', () => {
   })
 
   test('should excute script', () => {
+    $b.use({
+      fn1
+    })
     let count = 0
     const conf = $b()
       .script(conf => {
@@ -351,6 +354,7 @@ describe('script brick ok', () => {
     expect(conf).toEqual({
       a: 1
     })
+    clearBrick('fn1')
   })
   test('should throw when script is not a function', () => {
     expect(() => {
