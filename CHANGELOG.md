@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 <a name="3.0.0-alpha.0"></a>
 # [3.0.0-alpha.0](https://github.com/FlynnLeeGit/config-brick/compare/v3.0.0-0...v3.0.0-alpha.0) (2018-02-22)
-
+* **3.0:** BREADING CHANGE:simple api,all function is bricks function,no register,just function
 
 
 <a name="2.0.1-alpha.0"></a>
