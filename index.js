@@ -10,6 +10,7 @@ module.exports = {
   pipe,
   pipeAsync,
   when,
+  if: when,
   merge,
   outputJson
 }

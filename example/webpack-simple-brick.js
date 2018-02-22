@@ -1,7 +1,5 @@
-// first predefined some bricks you want
-const $b = require('../index')
 // brick can be found in $b.bricks
-const { merge } = $b.bricks
+const { merge, lay } = require('../index')
 
 const plugins = (plugins = []) => conf => {
   return merge({
@@ -26,13 +24,12 @@ const css = () => conf => {
   return rules([{ test: /\.css$/, loader: 'style-loader!css-loader' }])(conf)
 }
 
+const conf = lay(
+  vue(), //
+  babel(),
+  css()
+)()
 
-const webpackBrick = $b.registerBrick({
-  plugins,
-  rules,
-  vue,
-  babel,
-  css
-})
+console.log(conf)
 
-module.exports = webpackBrick
+
