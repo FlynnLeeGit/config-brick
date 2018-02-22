@@ -1,6 +1,6 @@
 {
   "name": "config-brick",
-  "version": "3.0.0-alpha.1.0",
+  "version": "3.0.0",
   "main": "./index.js",
   "author": "flynnlee",
   "scripts": {
@@ -13,8 +13,7 @@
     "chalk": "^2.3.0",
     "deep-object-diff": "^1.0.4",
     "fs-extra": "^5.0.0",
-    "lodash": "^4.17.4",
-    "thunks": "^4.9.1"
+    "lodash": "^4.17.4"
   },
   "devDependencies": {
     "jest": "^22.1.4",

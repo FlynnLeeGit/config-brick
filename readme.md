@@ -53,31 +53,24 @@ const conf6 = lay(fn4)() // {}  fn4 not a function,return pre result
 ## use with Async Function
 
 ```js
-const fn5 = (conf, next) => {
-  setTimeout(() => {
-    conf.e = 5
-    // must call,or it will never resolved
-    next()
-  })
-}
-
-const fn6 = (conf, next) => {
-  setTimeout(() => {
-    conf.f = 6
-    // a new value
-    next(conf)
-  })
-}
-
 // notice should resolved a function,not the conf value
-const fn7 = new Promise((resolve, reject) => {
+const fn5 = new Promise((resolve, reject) => {
   // give a name,for debug
-  const fn7Brick = conf => {
-    conf.g = 7
+  const fn5Brick = conf => {
+    conf.e = 5
   }
   // this is function
-  return fn7Brick
+  resolve(fn5Brick)
 })
+
+const fn6 = new Promise((resolve, reject) => {
+  const fn6Brick = conf => {
+    conf.f = 6
+    return conf
+  }
+  resolve(fn6Brick)
+})
+
 ```
 
 #### use lay with async function
@@ -86,10 +79,10 @@ const fn7 = new Promise((resolve, reject) => {
 const { lay } = require('config-brick')
 
 // detect it has async function ,so p will be a Promise instance
-const p = lay(fn1, fn2, fn3)()
+const p = lay(fn5, fn6)()
 
 p.then(conf => {
-  // {e:5,f:6,g:7}
+  // {e:5,f:6}
 })
 ```
 

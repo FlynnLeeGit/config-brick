@@ -3,23 +3,17 @@ const { _isset, _showFn, _isNext, _isPromise, _isFn } = require('./_utils')
 const pipeAsync = (...fns) => conf => {
   return fns.reduce((preResolved, curr) => {
     return preResolved.then(data => {
-      if (_isNext(curr)) {
-        // console.log('async:next:function -> ', _showFn(curr))
-        return new Promise((resolve, reject) => {
-          curr(data, new_data => {
-            resolve(_isset(new_data) ? new_data : data)
-          })
-        })
-      }
       // promised brick function
       if (_isPromise(curr)) {
         // console.log('async:promise:function -> ', _showFn(curr))
         return curr.then(fn => {
           if (!_isFn(fn)) {
             console.log(
-              `async:promise:function ->  ${_showFn(
-                fn
-              )} resolved value is not a function,so return pre data`
+              `async:promise:function ->  ${curr.name ||
+                fn.name ||
+                _showFn(
+                  fn
+                )} resolved value is not a function,so return pre data`
             )
             return data
           }

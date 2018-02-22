@@ -130,15 +130,7 @@ describe('lay brick', () => {
     const conf = $.lay(fnZ1)()
     expect(conf).toEqual({})
   })
-  test('should async next function ok', done => {
-    const p = $.lay(fnB1)()
-    p.then(conf => {
-      expect(conf).toEqual({
-        b1: 'b1'
-      })
-      done()
-    })
-  })
+  
   test('should async promise function ok', done => {
     const p = $.lay(fnC1)()
     p.then(conf => {
@@ -149,13 +141,11 @@ describe('lay brick', () => {
     })
   })
   test('should async mixed function ok', done => {
-    const p = $.lay(fnA1, fnA2, fnB1, fnB2, fnC1, fnC2, fnZ1)()
+    const p = $.lay(fnA1, fnA2, fnC1, fnC2, fnZ1)()
     p.then(conf => {
       expect(conf).toEqual({
         a1: 'a1',
         a2: 'a2',
-        b1: 'b1',
-        b2: 'b2',
         c1: 'c1',
         c2: 'c2'
       })

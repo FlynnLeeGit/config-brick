@@ -9,9 +9,7 @@ const lay = (...bricks) => (conf = {}) => {
     return pipe(...bricks)(conf)
   } else {
     console.log(
-      `detect async brick [ ${_showFn(
-        asyncBricks[0]
-      )} ],final result will be a Promise`
+      `detect async function,final result will be a Promise`
     )
     return new Promise((resolve, reject) => {
       resolve(pipeAsync(...bricks)(conf))
