@@ -1,190 +1,210 @@
 const $ = require('../index')
+const fse = require('fs-extra')
+const path = require('path')
 
-const fn1 = conf => {
-  conf.a = 1
+// is not a function,it will return `pre output`
+const fnZ1 = 1
+const fnZ2 = { z1: 'z1' }
+const fnZ3 = [2, 3]
+const fnZ4 = 'string'
+
+// no return,it will return `pre output`
+const fnA0 = () => {
+  console.log('here')
 }
-const fn2 = conf => {
-  conf.b = 2
+// no return,so default it will return  `pre output`
+const fnA1 = conf => {
+  conf.a1 = 'a1'
+}
+// return conf
+const fnA2 = conf => {
+  conf.a2 = 'a2'
   return conf
 }
-const fn3 = conf => {
-  conf.c = 3
+// return new_data,next input will be {c:3}
+const fnA3 = conf => {
+  conf.a3 = 'a3'
   return {
     c: 3
   }
 }
-const fn4 = (conf, next) => {
-  conf.d = 4
-  next()
-}
 
-const fn5 = (conf, next) => {
+// no next arguments,will resolved by `conf` value
+const fnB1 = (conf, next) => {
   setTimeout(() => {
-    conf.e = 5
+    conf.b1 = 'b1'
+    next()
+  })
+}
+// resolved by `conf`
+const fnB2 = (conf, next) => {
+  setTimeout(() => {
+    conf.b2 = 'b2'
     next(conf)
   })
 }
-const fn6 = (conf, next) => {
+
+// resolved by a new value, here {c:3}
+const fnB3 = (conf, next) => {
   setTimeout(() => {
-    conf.f = 6
+    conf.b3 = 'b3'
     next({
-      f: 6
-    })
-  })
-}
-const fn7 = conf =>
-  new Promise((resolve, reject) => {
-    setTimeout(() => {
-      conf.g = 7
-      resolve()
-    })
-  })
-const fn8 = conf =>
-  new Promise((resolve, reject) => {
-    setTimeout(() => {
-      conf.h = 8
-      resolve(conf)
-    })
-  }, 300)
-const fn9 = conf =>
-  new Promise((resolve, reject) => {
-    setTimeout(() => {
-      conf.i = 9
-      resolve({
-        i: 9
-      })
-    }, 200)
-  })
-
-describe('basic', () => {
-  test('should config-brick exist', () => {
-    expect($).toBeDefined()
-  })
-})
-
-describe('lay brick', () => {
-  test('should exist', () => {
-    expect($.bricks.lay).toBeDefined()
-    expect($.bricks.layAsync).toBeDefined()
-  })
-  test('should default right', () => {
-    const conf = $().lay()
-    expect(conf).toEqual({})
-  })
-  test('should seed right', () => {
-    const conf = $({ a: 1 }).lay()
-    expect(conf).toEqual({ a: 1 })
-  })
-  test('should sync bricks right', () => {
-    const conf = $().lay([
-      fn1, //
-      fn2
-    ])
-    expect(conf).toEqual({
-      a: 1,
-      b: 2
-    })
-  })
-  test('should async lay right', done => {
-    const p = $().layAsync([fn7])
-    p.then(conf => {
-      expect(conf).toEqual({ g: 7 })
-      done()
-    })
-  })
-  test('should mix sync lay ok', () => {
-    const conf = $().lay([fn1, fn2, fn3])
-    expect(conf).toEqual({
       c: 3
     })
   })
+}
 
-  test('should mix sync && async brick ok', done => {
-    const p = $().layAsync([fn1, fn2, fn3, fn7, fn8, fn9])
-    p.then(conf => {
-      expect(conf).toEqual({
-        i: 9
-      })
-      done()
+const fnC1 = new Promise((resolve, reject) => {
+  setTimeout(() => {
+    resolve(conf => {
+      conf.c1 = 'c1'
     })
-  })
-  test('should throw when use lay with async brick', () => {
-    expect(() => {
-      $().lay([fn7])
-    }).toThrow()
-  })
-  test('should warn when use layAsync with all sync bricks', () => {
-    $().layAsync()
+  }, 200)
+})
+fnC1.name = 'fnC1'
+
+const fnC2 = new Promise((resolve, reject) => {
+  setTimeout(() => {
+    resolve(conf => {
+      conf.c2 = 'c2'
+      return conf
+    })
+  }, 200)
+})
+fnC2.name = 'fnC2'
+
+const fnC3 = new Promise((resolve, reject) => {
+  setTimeout(() => {
+    resolve(conf => {
+      conf.c3 = 'c3'
+      return {
+        c: 3
+      }
+    })
+  }, 200)
+})
+fnC3.name = 'fnC3'
+
+const fnC4 = new Promise((resolve, reject) => {
+  resolve(3)
+})
+fnC4.name = 'fnC4'
+
+/**
+ * TEST
+ */
+
+describe('basic', () => {
+  test('should exists ', () => {
+    expect($.lay).toBeDefined()
+    expect($.merge).toBeDefined()
+    expect($.outputJson).toBeDefined()
+    expect($.pipe).toBeDefined()
+    expect($.pipeAsync).toBeDefined()
+    expect($.when).toBeDefined()
   })
 })
 
 describe('merge brick', () => {
-  test('should merge right', () => {
-    const conf = $({
-      a: [1],
-      b: 2
-    }).merge({
-      a: [2],
-      b: 3
-    })
-    expect(conf).toEqual({
-      a: [1, 2],
-      b: 3
+  test('should ok', () => {
+    expect($.merge({ a: 1 })({ a: 2 })).toEqual({
+      a: 1
     })
   })
-  test('should not merge array', () => {
-    expect($({ a: [1] }).merge({ a: [1] })).toEqual({
-      a: [1]
+  test('should array ok', () => {
+    expect($.merge({ a: [1, 2] })({ a: [1] })).toEqual({
+      a: [1, 2]
     })
   })
 })
 
-describe('if brick', () => {
-  test('should if sync default ok', () => {
-    const conf = $().lay([$.bricks.if(true)])
+describe('lay brick', () => {
+  test('should sync function ok', () => {
+    const conf = $.lay(fnA0, fnA1, fnA2)()
+    expect(conf).toEqual({
+      a1: 'a1',
+      a2: 'a2'
+    })
+  })
+  test('should sync value ok', () => {
+    const conf = $.lay(fnZ1)()
     expect(conf).toEqual({})
   })
-  test('should if sync right', () => {
-    let bool = true
-    const conf = $().lay([
-      fn1, //
-      $.bricks.if(
-        bool, //
-        [fn2]
-      )
-    ])
-    expect(conf).toEqual({
-      a: 1,
-      b: 2
-    })
-    bool = false
-    const conf2 = $().lay([
-      fn1, //
-      $.bricks.if(
-        bool, //
-        [fn2],
-        [fn3]
-      )
-    ])
-    expect(conf2).toEqual({
-      c: 3
+  test('should async next function ok', done => {
+    const p = $.lay(fnB1)()
+    p.then(conf => {
+      expect(conf).toEqual({
+        b1: 'b1'
+      })
+      done()
     })
   })
-  test('should async if ok', done => {
-    $()
-      .layAsync([
-        fn7, //
-        $.bricks.ifAsync(
-          true, //
-          [fn8]
-        )
-      ])
-      .then(conf => {
-        expect(conf).toEqual({
-          g: 7,
-          h: 8
-        })
-        done()
+  test('should async promise function ok', done => {
+    const p = $.lay(fnC1)()
+    p.then(conf => {
+      expect(conf).toEqual({
+        c1: 'c1'
       })
+      done()
+    })
+  })
+  test('should async mixed function ok', done => {
+    const p = $.lay(fnA1, fnA2, fnB1, fnB2, fnC1, fnC2, fnZ1)()
+    p.then(conf => {
+      expect(conf).toEqual({
+        a1: 'a1',
+        a2: 'a2',
+        b1: 'b1',
+        b2: 'b2',
+        c1: 'c1',
+        c2: 'c2'
+      })
+      done()
+    })
+  })
+  test('shoud return pre data,when resolved is not a function', done => {
+    const p = $.lay(fnC4)()
+    p.then(conf => {
+      expect(conf).toEqual({})
+      done()
+    })
+  })
+})
+
+describe('outputJson', () => {
+  test('should default ok', () => {
+    $.lay(fnA1, $.outputJson())()
+    const filepath = path.join(__dirname, '../config.json')
+    const conf = fse.readJsonSync(filepath, 'utf-8')
+    expect(conf).toEqual({
+      a1: 'a1'
+    })
+    fse.removeSync(filepath)
+  })
+  test('should filepath ok', () => {
+    const filepath = path.join(__dirname, './config.json')
+    $.lay(fnA1, $.outputJson(filepath))()
+    const conf = fse.readJsonSync(filepath, 'utf-8')
+    expect(conf).toEqual({
+      a1: 'a1'
+    })
+    fse.removeSync(filepath)
+  })
+})
+
+describe('when brick', () => {
+  test('should true when ok', () => {
+    const conf = $.lay(fnA1, $.when(true, [fnA2], []))()
+    expect(conf).toEqual({
+      a1: 'a1',
+      a2: 'a2'
+    })
+  })
+  test('should false when ok', () => {
+    const conf = $.lay(fnA1, $.when(false, [], [fnA2]))()
+    expect(conf).toEqual({
+      a1: 'a1',
+      a2: 'a2'
+    })
   })
 })

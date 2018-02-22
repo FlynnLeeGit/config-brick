@@ -1,9 +1,10 @@
 const _ = require('lodash')
+
 // https://lodash.com/docs/4.17.4#mergeWith
 
 const concatArr = (objValue, srcValue) => {
   if (_.isArray(objValue)) {
-    return _.isEqual(objValue, srcValue) ? objValue : objValue.concat(srcValue)
+    return _.union(objValue,srcValue)
   }
 }
 /**
@@ -11,9 +12,12 @@ const concatArr = (objValue, srcValue) => {
  * @param { object } source
  * @param { Function } customizer
  * @return { object }
+ * @example
+ * merge({a:1})({b:2}) -> {a:1,b:2}
+ * merge({a:[1]})({a:[2]}) -> {a:[1,2]}
+ *
  */
-const merge = (source, customizer = concatArr) => (conf = {}) => {
-  return _.mergeWith({}, conf, source, customizer)
-}
-
-module.exports = merge
+module.exports = (r, customizer = concatArr) =>
+  function merge(l) {
+    return _.mergeWith({}, l, r, customizer)
+  }
